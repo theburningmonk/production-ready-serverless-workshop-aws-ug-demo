@@ -1,0 +1,130 @@
+service: workshop-yancui
+
+plugins:
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  stage: dev
+  region: eu-west-1
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:scan
+      Resource:
+        Fn::GetAtt:
+          - restaurantsTable
+          - Arn
+    - Effect: Allow
+      Action: kinesis:PutRecord
+      Resource: 
+        Fn::GetAtt:
+          - orderEventsStream
+          - Arn
+    - Effect: Allow
+      Action: sns:Publish
+      Resource: 
+        Ref: restaurantNotificationTopic
+
+functions:
+  get-index:
+    handler: functions/get-index.handler
+    events:
+      - http:
+          path: /
+          method: get
+    environment:
+      restaurants_api: 
+        Fn::Join:
+          - ''
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}/restaurants"
+      orders_api: 
+        Fn::Join:
+          - ''
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}/orders"
+
+  get-restaurants:
+    handler: functions/get-restaurants.handler
+    events:
+      - http:
+          path: /restaurants/
+          method: get          
+    environment:
+      restaurants_table: 
+        Ref: restaurantsTable
+
+  search-restaurants:
+    handler: functions/search-restaurants.handler
+    events:
+      - http:
+          path: /restaurants/search
+          method: post
+    environment:
+      restaurants_table:
+        Ref: restaurantsTable
+
+  place-order:
+    handler: functions/place-order.handler
+    events:
+      - http:
+          path: /orders
+          method: post
+    environment:
+      order_events_stream: 
+        Ref: orderEventsStream
+
+  notify-restaurant:
+    handler: functions/notify-restaurant.handler
+    events:
+      - stream:
+          type: kinesis
+          arn: 
+            Fn::GetAtt:
+              - orderEventsStream
+              - Arn
+    environment:
+      order_events_stream:
+        Ref: orderEventsStream
+      restaurant_notification_topic: 
+        Ref: restaurantNotificationTopic
+
+resources:
+  Resources:
+    restaurantsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: restaurants-${self:provider.stage}-yancui
+        AttributeDefinitions:
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    orderEventsStream:
+      Type: AWS::Kinesis::Stream
+      Properties: 
+        Name: orders-${self:provider.stage}-yancui
+        ShardCount: 1
+
+    restaurantNotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties: 
+        DisplayName: restaurants-${self:provider.stage}-yancui
+        TopicName: restaurants-${self:provider.stage}-yancui
+
+    mySubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: <INSERT EMAIL HERE>
+        Protocol: email
+        TopicArn: 
+          Ref: restaurantNotificationTopic            

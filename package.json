@@ -1,0 +1,33 @@
+{
+  "name": "workshop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "sls": "serverless",
+    "test": "TEST_MODE=handler ./node_modules/.bin/mocha tests/test_cases --reporter spec --timeout 5000",
+    "acceptance": "TEST_MODE=http ./node_modules/.bin/mocha tests/test_cases --reporter spec --timeout 5000"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "cheerio": "^1.0.0-rc.2",
+    "lodash": "^4.17.10",
+    "mocha": "^5.2.0",
+    "mock-aws": "^1.2.3",
+    "serverless": "^1.28.0",
+    "serverless-pseudo-parameters": "^1.6.0"
+  },
+  "dependencies": {
+    "chance": "^1.0.16",
+    "aws-sdk": "^2.273.1",
+    "aws4": "^1.7.0",
+    "awscred": "^1.4.1",
+    "bluebird": "^3.5.1",
+    "co": "^4.6.0",
+    "mustache": "^2.3.0",
+    "superagent": "^3.8.3",
+    "superagent-promise": "^1.1.0"
+  }
+}
